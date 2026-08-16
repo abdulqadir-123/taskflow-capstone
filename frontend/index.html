@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TaskFlow Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside>
+    <h1>TaskFlow</h1>
+    <p>AI-assisted task management</p>
+    <button onclick="seed()">Load demo data</button>
+    <button onclick="loadAll()">Refresh</button>
+  </aside>
+  <main>
+    <header>
+      <div>
+        <h2>Dashboard</h2>
+        <span id="message">Ready</span>
+      </div>
+      <div class="quick">
+        <input id="quickText" placeholder="e.g. Create high priority task to finish login by Friday">
+        <button onclick="quickAdd()">✨ Quick Add</button>
+      </div>
+    </header>
+
+    <section class="stats">
+      <div><b id="total">0</b><span>Total tasks</span></div>
+      <div><b id="done">0</b><span>Completed</span></div>
+      <div><b id="progress">0%</b><span>Progress</span></div>
+      <div><b id="projects">0</b><span>Projects</span></div>
+    </section>
+
+    <section class="toolbar">
+      <input id="search" placeholder="Search tasks..." oninput="searchTasks()">
+      <select id="sort" onchange="loadTasks()">
+        <option value="id">Newest</option>
+        <option value="title">Title</option>
+        <option value="priority">Priority</option>
+        <option value="due_date">Due date</option>
+      </select>
+    </section>
+
+    <section class="panel">
+      <h3>Tasks</h3>
+      <div id="tasks" class="tasks"></div>
+    </section>
+  </main>
+<script src="app.js"></script>
+</body>
+</html>
