@@ -1,34 +1,91 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from .database import Base, engine, get_db
 from .models import User, Project, Task
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+import time
+
+from .database import Base, engine, get_db
+from .models import User, Project, Task
 from .schemas import (
-    UserCreate, UserOut, ProjectCreate, ProjectUpdate, ProjectOut,
-    TaskCreate, TaskUpdate, TaskOut, QuickAddRequest
+    UserCreate,
+    UserOut,
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectOut,
+    TaskCreate,
+    TaskUpdate,
+    TaskOut,
+    QuickAddRequest,
 )
-from .algorithms import search_tasks, merge_sort, task_statistics, benchmark
+
+from .algorithms import (
+    search_tasks,
+    merge_sort,
+    insertion_sort,
+    binary_search,
+    linear_search,
+    task_statistics,
+    benchmark,
+)
+
+from .ai_parser import parse_quick_add
 from .ai_parser import parse_quick_add
 
 Base.metadata.create_all(bind=engine)
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.perf_counter()
+
+    response = await call_next(request)
+
+    process_time = (time.perf_counter() - start_time) * 1000
+
+    print(
+        f"{request.method} {request.url.path} "
+        f"{response.status_code} {process_time:.2f}ms"
+    )
+
+    return response
 app = FastAPI(title="TaskFlow API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+@app.middleware("http")
+async def log_request(request: Request, call_next):
+    start_time = time.perf_counter()
+
+    response = await call_next(request)
+
+    process_time = (time.perf_counter() - start_time) * 1000
+
+    print(
+        f"{request.method} {request.url.path} "
+        f"- {process_time:.2f} ms"
+    )
+
+    return response
 
 @app.get("/")
 def root():
     return {"name": "TaskFlow", "status": "running", "docs": "/docs"}
 
-@app.post("/users", response_model=UserOut)
+@app.post("/users", response_model=UserOut, status_code=201)
 def create_user(data: UserCreate, db: Session = Depends(get_db)):
     if db.scalar(select(User).where(User.email == data.email)):
         raise HTTPException(409, "Email already exists")
@@ -40,7 +97,7 @@ def create_user(data: UserCreate, db: Session = Depends(get_db)):
 def list_users(db: Session = Depends(get_db)):
     return list(db.scalars(select(User).order_by(User.id)).all())
 
-@app.post("/projects", response_model=ProjectOut)
+@app.post("/projects", response_model=ProjectOut, status_code=201)
 def create_project(data: ProjectCreate, db: Session = Depends(get_db)):
     if not db.get(User, data.owner_id):
         raise HTTPException(404, "Owner not found")
@@ -77,7 +134,7 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     db.delete(obj); db.commit()
     return {"message": "Project deleted", "id": project_id}
 
-@app.post("/tasks", response_model=TaskOut)
+@app.post("/tasks", response_model=TaskOut, status_code=201)
 def create_task(data: TaskCreate, db: Session = Depends(get_db)):
     if not db.get(Project, data.project_id):
         raise HTTPException(404, "Project not found")
